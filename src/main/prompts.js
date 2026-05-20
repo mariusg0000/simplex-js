@@ -1,11 +1,41 @@
-import fs from 'fs'
-import toml from '@iarna/toml'
-import path from 'path'
-import { config } from './config.js'
+export const CLI_PROMPTS = {
+  rg: "rg — Fast text search in plain-text files — rg <pattern> [path]. Use -l to list only matching filenames, -i for case-insensitive, -n for line numbers, -c for match count. Use -g <glob> to filter by filename pattern. Forbidden: `grep`.",
+  fd: "fd — Fast file/directory search by name — fd <pattern> [path]. Use -t f for files only, -t d for directories only, -e <ext> for extension filter, -H for hidden files. Supports regex patterns by default. Forbidden: `find`.",
+  sd: "sd — Find & Replace text — sd '<pattern>' '<replacement>' <file...>. Performs in-place replacement by default. Use -p for preview (dry-run, shows changes without writing). Use -F to treat pattern as a literal string (no regex). Forbidden: `sed`.",
+  pandoc_read: [
+    'pandoc — Read / extract text from Office documents — Convert .docx, .odt, .epub, .html files to plain text.',
+    'WORKFLOW: pandoc <file> -t plain   (outputs plain text to stdout)',
+    'Use -t markdown for Markdown output.',
+    'Only for reading document content. For creating documents, use pandoc_write (delegated to specialized agents).',
+  ].join('\n'),
+  pandoc_write: [
+    'pandoc — Create Office documents from Markdown — Generate .docx, .odt, .pptx, .epub, .html.',
+    '1. Write content as Markdown with YAML frontmatter (title, author, date)',
+    '2. Optional: create metadata JSON for document properties',
+    '3. Convert: pandoc content.md [--metadata-file=meta.json] -o output.docx',
+    '',
+    'JSON WORKFLOWS',
+    '• Metadata injection: --metadata-file=meta.json auto-fills Title, Author, Date in Word properties',
+    '• Template variables: -V recipient="Name" → $recipient$ in Markdown gets replaced at compile time',
+    '• JSON → tables: python -c "import pandas; pandas.read_json(\'data.json\').to_csv(\'table.md\', sep=\'|\', index=False)" && pandoc table.md -o data.docx',
+    '• AST manipulation: pandoc doc.md -t json → restructure with jq → pandoc -f json -o final.docx',
+    '',
+    'STRUCTURE & STYLING',
+    '• Markdown files start with YAML frontmatter for title, author, date, abstract, keywords',
+    '• --toc adds table of contents, --number-sections numbers headings',
+    '• --reference-doc=<template.docx> applies Word theme, fonts, and styles from a reference file',
+    '',
+    'KEY FORMATS: .docx, .odt, .pptx, .epub, .html',
+    'NOTE: PDF documents are created exclusively with weasyprint, not pandoc.',
+  ].join('\n'),
+  pymupdf: "pymupdf (import fitz) — PDF manipulation via Python (pre-installed in scripts venv). Use `python -c` with fitz for: text extraction (get_text), metadata, merge/split pages, page-to-image (get_pixmap→PNG/JPEG), list fonts, extract images. For PDF creation, delegate to create_pdf tool.",
+  pandas: "pandas — Read/manipulate CSV/TSV/Excel/JSON data via Python (pre-installed in scripts venv). Use `python -c` with pandas. For PDF creation, delegate to create_pdf tool.",
+}
 
-export function loadPrompts() {
-  const promptsPath = path.join(config.simplexHome, 'cli_prompts.toml')
-  if (!fs.existsSync(promptsPath)) return {}
-  const raw = fs.readFileSync(promptsPath, 'utf-8')
-  return toml.parse(raw)
+export const EXCLUDED_CLI = new Set(['pandoc_write'])
+
+export const TOOL_ALIASES = {
+  fd: ['fdfind'],
+  pandoc_read: ['pandoc'],
+  pandoc_write: ['pandoc'],
 }

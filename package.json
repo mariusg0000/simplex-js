@@ -16,7 +16,6 @@
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "@iarna/toml": "^3.0.0",
     "better-sqlite3": "^11.9.1",
     "dotenv": "^16.4.7",
     "lucide-react": "^0.487.0",

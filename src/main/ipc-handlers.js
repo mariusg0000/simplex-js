@@ -68,10 +68,9 @@ export function registerIpcHandlers() {
     const modelConfig = config.resolveModel(modelStr)
 
     try {
-      const systemPrompt = buildSystemPrompt([], [], [])
-      const fullMessages = systemPrompt
-        ? [{ role: 'system', content: systemPrompt }, ...messages]
-        : messages
+      const sessionDir = sessionId ? database.sessionDir(sessionId) : null
+      const systemMsg = buildSystemPrompt([], [], [], sessionDir)
+      const fullMessages = [systemMsg, ...messages]
 
       const parser = new StreamingToolParser()
       let contentBuffer = ''
