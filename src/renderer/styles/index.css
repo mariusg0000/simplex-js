@@ -537,6 +537,10 @@ html, body, #root {
   flex: 1;
 }
 
+.model-combo-wrapper {
+  position: relative;
+}
+
 .model-combo-input {
   width: 100%;
   background: var(--bg-primary);
@@ -550,6 +554,50 @@ html, body, #root {
 
 .model-combo-input:focus {
   border-color: var(--accent);
+}
+
+.model-combo-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  z-index: 200;
+}
+
+.model-combo-item {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-combo-item:hover {
+  background: var(--bg-hover);
+}
+
+.model-combo-item.active {
+  background: var(--bg-tertiary);
+  color: var(--accent);
+}
+
+.model-combo-item.disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.model-combo-item.disabled:hover {
+  background: none;
 }
 
 .model-selector select {

@@ -4,11 +4,17 @@ export function ModelSelector({ label, providers, selectedProvider, selectedMode
   const [models, setModels] = React.useState([])
   const [loading, setLoading] = React.useState(false)
   const [loaded, setLoaded] = React.useState(false)
+  const [inputValue, setInputValue] = React.useState('')
+  const [showList, setShowList] = React.useState(false)
 
   React.useEffect(() => {
     if (!selectedProvider || loaded) return
     loadModels(selectedProvider)
   }, [selectedProvider])
+
+  React.useEffect(() => {
+    setInputValue(selectedModel || '')
+  }, [selectedModel])
 
   const loadModels = async (provider) => {
     setLoading(true)
@@ -31,11 +37,30 @@ export function ModelSelector({ label, providers, selectedProvider, selectedMode
     if (provider) loadModels(provider)
   }
 
-  const handleModelInput = (e) => {
-    onModelChange(e.target.value)
+  const handleInputChange = (e) => {
+    const val = e.target.value
+    setInputValue(val)
+    setShowList(true)
+    onModelChange(val)
   }
 
-  const datalistId = `models-${label.replace(/\s+/g, '-').toLowerCase()}`
+  const handleSelectModel = (model) => {
+    setInputValue(model)
+    setShowList(false)
+    onModelChange(model)
+  }
+
+  const handleInputFocus = () => {
+    setShowList(true)
+  }
+
+  const handleInputBlur = () => {
+    setTimeout(() => setShowList(false), 150)
+  }
+
+  const filteredModels = inputValue
+    ? models.filter((m) => m.toLowerCase().includes(inputValue.toLowerCase()))
+    : models
 
   return (
     <div className="model-selector">
@@ -50,21 +75,35 @@ export function ModelSelector({ label, providers, selectedProvider, selectedMode
         {loading && <span className="text-muted">Loading...</span>}
       </div>
       {models.length > 0 && (
-        <input
-          type="text"
-          list={datalistId}
-          placeholder="Select or type model..."
-          value={selectedModel || ''}
-          onChange={handleModelInput}
-          className="model-combo-input"
-        />
-      )}
-      {models.length > 0 && (
-        <datalist id={datalistId}>
-          {models.slice(0, 200).map((m) => (
-            <option key={m} value={m} />
-          ))}
-        </datalist>
+        <div className="model-combo-wrapper">
+          <input
+            type="text"
+            placeholder="Select or type model..."
+            value={inputValue}
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            className="model-combo-input"
+          />
+          {showList && filteredModels.length > 0 && (
+            <ul className="model-combo-list">
+              {filteredModels.slice(0, 50).map((m) => (
+                <li
+                  key={m}
+                  className={`model-combo-item ${m === selectedModel ? 'active' : ''}`}
+                  onMouseDown={() => handleSelectModel(m)}
+                >
+                  {m}
+                </li>
+              ))}
+              {filteredModels.length > 50 && (
+                <li className="model-combo-item disabled">
+                  ... and {filteredModels.length - 50} more (type to refine)
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   )
