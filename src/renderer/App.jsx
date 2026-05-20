@@ -75,9 +75,10 @@ export default function App() {
       </div>
       {showSettings && (
         <Settings
-          settings={settings.values}
-          availableModels={settings.availableModels}
-          modelsLoading={settings.modelsLoading}
+          values={settings.values}
+          providers={settings.providers}
+          loaded={settings.loaded}
+          fetchModels={settings.fetchModels}
           onSave={settings.save}
           onClose={() => setShowSettings(false)}
         />

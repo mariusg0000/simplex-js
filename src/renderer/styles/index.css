@@ -373,6 +373,10 @@ html, body, #root {
   overflow-y: auto;
 }
 
+.settings-modal {
+  width: 600px;
+}
+
 .modal-header {
   padding: 16px;
   border-bottom: 1px solid var(--border);
@@ -473,4 +477,122 @@ html, body, #root {
 
 .empty-state p {
   font-size: 14px;
+}
+
+/* Settings Tabs */
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+}
+
+.tab-btn {
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Models Tab */
+.models-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Model Selector */
+.model-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-selector label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.model-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-selector-row select {
+  flex: 1;
+}
+
+.model-search input {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.model-search input:focus {
+  border-color: var(--accent);
+}
+
+.model-selector select {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 10px;
+  font-size: 14px;
+  outline: none;
+  max-height: 180px;
+}
+
+.model-selector select:focus {
+  border-color: var(--accent);
+}
+
+/* General Tab */
+.general-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group textarea {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  outline: none;
+  resize: vertical;
+}
+
+.form-group textarea:focus {
+  border-color: var(--accent);
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-size: 12px;
 }

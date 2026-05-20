@@ -1,41 +1,42 @@
 import React from 'react'
 
 const defaults = {
-  model: 'opencode-go/deepseek-v4-flash',
-  apiBase: 'https://opencode.ai/zen/go/v1',
+  chatModel: 'opencode-go/deepseek-v4-flash',
+  visionModel: '',
+  summarizationModel: 'opencode-go/deepseek-v4-flash',
   temperature: 0.7,
   maxTokens: 4096,
+  maxContext: 80000,
+  minContext: 4000,
+  systemPrompt: 'You are Simplex AI, a helpful office assistant.',
   showReasoning: true,
 }
 
 export function useSettings() {
   const [values, setValues] = React.useState(defaults)
-  const [availableModels, setAvailableModels] = React.useState([])
-  const [modelsLoading, setModelsLoading] = React.useState(false)
+  const [providers, setProviders] = React.useState([])
+  const [loaded, setLoaded] = React.useState(false)
 
   React.useEffect(() => {
-    window.ipc.invoke('settings:load').then((prefs) => {
-      setValues((prev) => ({ ...prev, ...prefs }))
+    Promise.all([
+      window.ipc.invoke('config:load'),
+      window.ipc.invoke('providers:list'),
+    ]).then(([cfg, provs]) => {
+      setValues((prev) => ({ ...prev, ...cfg }))
+      setProviders(provs)
+      setLoaded(true)
     })
-    loadModels()
   }, [])
-
-  const loadModels = async () => {
-    setModelsLoading(true)
-    try {
-      const models = await window.ipc.invoke('models:list')
-      setAvailableModels(models)
-    } catch {
-      setAvailableModels([])
-    } finally {
-      setModelsLoading(false)
-    }
-  }
 
   const save = async (newValues) => {
     setValues(newValues)
-    await window.ipc.invoke('settings:save', newValues)
+    await window.ipc.invoke('config:save', newValues)
   }
 
-  return { values, save, availableModels, modelsLoading, reloadModels: loadModels }
+  const fetchModels = async (providerAlias) => {
+    if (!providerAlias) return []
+    return window.ipc.invoke('models:list', providerAlias)
+  }
+
+  return { values, save, providers, loaded, fetchModels }
 }

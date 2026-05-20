@@ -15,15 +15,23 @@ function getMainWindow() {
 export function registerIpcHandlers() {
   ipcMain.handle('settings:load', () => storage.load())
   ipcMain.handle('settings:save', (_event, prefs) => storage.save(prefs))
+
   ipcMain.handle('config:load', () => ({
-    model: config.model,
-    apiBase: config.apiBase,
+    chatModel: config.chatModel,
+    visionModel: config.visionModel,
+    summarizationModel: config.summarizationModel,
     temperature: config.temperature,
     maxTokens: config.maxTokens,
+    maxContext: config.maxContext,
+    minContext: config.minContext,
     systemPrompt: config.systemPrompt,
   }))
 
-  ipcMain.handle('models:list', () => config.fetchModels())
+  ipcMain.handle('config:save', (_event, partial) => config.saveConfig(partial))
+
+  ipcMain.handle('providers:list', () => config.getProviderList())
+
+  ipcMain.handle('models:list', (_event, providerAlias) => config.fetchModelsForProvider(providerAlias))
 
   ipcMain.handle('sessions:list', () => database.listSessions())
   ipcMain.handle('sessions:load', (_event, id) => database.getSession(id))
@@ -55,9 +63,8 @@ export function registerIpcHandlers() {
 
     abortController = new AbortController()
 
-    const modelConfig = settings?.model
-      ? config.resolveModel(settings.model)
-      : { model: config.model, apiKey: config.apiKey, apiBase: config.apiBase }
+    const modelStr = settings?.chatModel || config.chatModel
+    const modelConfig = config.resolveModel(modelStr)
 
     try {
       const systemPrompt = buildSystemPrompt([], [], [])

@@ -4,10 +4,15 @@ import os from 'os'
 import fs from 'fs'
 
 const SIMPLEX_HOME = path.join(os.homedir(), '.simplexai')
-
+const CONFIG_PATH = path.join(SIMPLEX_HOME, 'config.json')
 const ORIGINAL_ENV_PATH = path.resolve(process.cwd(), '../Simplex/.env')
 
 dotenv.config({ path: ORIGINAL_ENV_PATH, override: true })
+
+function ensureDir(filePath) {
+  const dir = path.dirname(filePath)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+}
 
 function parseProviders(envVars) {
   const providers = {}
@@ -55,69 +60,81 @@ function resolveModel(modelStr) {
   }
 }
 
-const resolved = resolveModel()
-
-async function fetchModels() {
-  const results = []
-  const allProviders = { ...providers }
-
-  if (envVars.SIMPLEX_OPENAI_API_KEY) {
-    const fallbackAlias = 'default'
-    allProviders[fallbackAlias] = {
-      apiKey: envVars.SIMPLEX_OPENAI_API_KEY,
-      apiBase: envVars.SIMPLEX_OPENAI_API_BASE || '',
-    }
+function loadConfig() {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) return null
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'))
+  } catch {
+    return null
   }
-
-  for (const [alias, { apiKey, apiBase }] of Object.entries(allProviders)) {
-    if (!apiBase || !apiKey) continue
-    try {
-      const url = apiBase.endsWith('/') ? `${apiBase}models` : `${apiBase}/models`
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      })
-      if (!res.ok) continue
-      const data = await res.json()
-      const models = Array.isArray(data) ? data : (data.data || [])
-      for (const m of models) {
-        results.push({
-          id: m.id,
-          provider: alias,
-          fullName: `${alias}/${m.id}`,
-        })
-      }
-    } catch {
-      // skip unreachable providers
-    }
-  }
-  return results
 }
 
+function saveConfig(partial) {
+  ensureDir(CONFIG_PATH)
+  const existing = loadConfig() || {}
+  const merged = { ...existing, ...partial }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2), 'utf-8')
+  return merged
+}
+
+async function fetchModelsForProvider(alias) {
+  const target = providers[alias]
+  if (!target || !target.apiBase || !target.apiKey) return []
+
+  try {
+    const url = target.apiBase.endsWith('/') ? `${target.apiBase}models` : `${target.apiBase}/models`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${target.apiKey}` },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const models = Array.isArray(data) ? data : (data.data || [])
+    return models.map((m) => m.id)
+  } catch {
+    return []
+  }
+}
+
+function getProviderList() {
+  return Object.keys(providers)
+}
+
+const savedConfig = loadConfig() || {}
+const defaultChatModel = envVars.SIMPLEX_CHAT_MODEL || envVars.SIMPLEX_MODEL || 'opencode-go/deepseek-v4-flash'
+const defaultVisionModel = envVars.SIMPLEX_VISION_MODEL || ''
+
+const chatModelStr = savedConfig.chatModel || defaultChatModel
+const visionModelStr = savedConfig.visionModel || defaultVisionModel
+const summarizationModelStr = savedConfig.summarizationModel || defaultChatModel
+
+const resolvedChat = resolveModel(chatModelStr)
+const resolvedVision = resolveModel(visionModelStr)
+const resolvedSummarization = resolveModel(summarizationModelStr)
+
 export const config = {
-  model: resolved.model,
-  apiKey: resolved.apiKey,
-  apiBase: resolved.apiBase,
-  chatModel: envVars.SIMPLEX_CHAT_MODEL || envVars.SIMPLEX_MODEL || 'opencode-go/deepseek-v4-flash',
-  visionModel: envVars.SIMPLEX_VISION_MODEL || '',
-  temperature: parseFloat(envVars.SIMPLEX_TEMPERATURE || envVars.TEMPERATURE || '0.7'),
-  maxTokens: parseInt(envVars.SIMPLEX_MAX_TOKENS || envVars.MAX_TOKENS || '4096', 10),
+  chatModel: chatModelStr,
+  chatModelResolved: resolvedChat,
+  visionModel: visionModelStr,
+  visionModelResolved: resolvedVision,
+  summarizationModel: summarizationModelStr,
+  summarizationModelResolved: resolvedSummarization,
+  temperature: savedConfig.temperature ?? parseFloat(envVars.SIMPLEX_TEMPERATURE || envVars.TEMPERATURE || '0.7'),
+  maxTokens: savedConfig.maxTokens ?? parseInt(envVars.SIMPLEX_MAX_TOKENS || envVars.MAX_TOKENS || '4096', 10),
   maxContext: parseInt(envVars.SIMPLEX_MAX_CONTEXT || '80000', 10),
   minContext: parseInt(envVars.SIMPLEX_MIN_CONTEXT || '4000', 10),
-  systemPrompt: envVars.SIMPLEX_SYSTEM_PROMPT || 'You are Simplex AI, a helpful office assistant.',
+  systemPrompt: savedConfig.systemPrompt ?? envVars.SIMPLEX_SYSTEM_PROMPT ?? 'You are Simplex AI, a helpful office assistant.',
   logLevel: envVars.SIMPLEX_LOG_LEVEL || envVars.LOG_LEVEL || 'INFO',
   nativeMode: envVars.SIMPLEX_NATIVE_MODE === 'True' || envVars.SIMPLEX_NATIVE_MODE === 'true',
   simplexHome: SIMPLEX_HOME,
   dbPath: path.join(SIMPLEX_HOME, 'chats.db'),
   settingsPath: path.join(SIMPLEX_HOME, 'user_settings.json'),
+  configPath: CONFIG_PATH,
   bridgePath: path.join(SIMPLEX_HOME, 'bridge.py'),
   pythonPath: path.join(SIMPLEX_HOME, '.venv', 'bin', 'python'),
   providers,
+  getProviderList,
+  fetchModelsForProvider,
   resolveModel,
-  fetchModels,
-}
-
-if (!config.apiKey && process.env.API_KEY) {
-  config.apiKey = process.env.API_KEY
-  config.apiBase = process.env.API_BASE || config.apiBase
-  config.model = process.env.MODEL || config.model
+  loadConfig,
+  saveConfig,
 }

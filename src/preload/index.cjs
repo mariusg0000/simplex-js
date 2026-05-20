@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('ipc', {
       'settings:load',
       'settings:save',
       'config:load',
+      'config:save',
+      'providers:list',
       'models:list',
       'chat:send',
       'chat:cancel',
