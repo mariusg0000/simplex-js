@@ -1,0 +1,38 @@
+{
+  "name": "simplex-ai",
+  "version": "1.0.0",
+  "description": "Simplex AI — Electron + React + JavaScript",
+  "type": "module",
+  "main": "src/main/index.js",
+  "scripts": {
+    "dev": "ELECTRON_DISABLE_SECURITY_WARNINGS=true vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dist": "vite build && electron-builder",
+    "dist:linux": "vite build && electron-builder --linux",
+    "dist:win": "vite build && electron-builder --win",
+    "dist:mac": "vite build && electron-builder --mac"
+  },
+  "dependencies": {
+    "@iarna/toml": "^3.0.0",
+    "better-sqlite3": "^11.9.1",
+    "dotenv": "^16.4.7",
+    "lucide-react": "^0.487.0",
+    "openai": "^4.93.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
+    "tiktoken": "^1.0.20"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
+    "@vitejs/plugin-react": "^4.4.1",
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.3.2",
+    "vite-plugin-electron": "^0.29.1",
+    "vite-plugin-electron-renderer": "^0.14.7"
+  }
+}
