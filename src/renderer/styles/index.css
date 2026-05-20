@@ -537,19 +537,43 @@ html, body, #root {
   flex: 1;
 }
 
+.model-search {
+  position: relative;
+}
+
 .model-search input {
   width: 100%;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  padding: 6px 10px;
+  padding: 6px 28px 6px 10px;
   font-size: 13px;
   outline: none;
 }
 
 .model-search input:focus {
   border-color: var(--accent);
+}
+
+.model-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.model-search-clear:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .model-selector select {

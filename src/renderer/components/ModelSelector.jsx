@@ -57,6 +57,15 @@ export function ModelSelector({ label, providers, selectedProvider, selectedMode
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {search && (
+            <button
+              className="model-search-clear"
+              onClick={() => setSearch('')}
+              title="Clear filter"
+            >
+              ×
+            </button>
+          )}
         </div>
       )}
       {models.length > 0 && (
