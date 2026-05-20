@@ -39,7 +39,12 @@ export default function App() {
     const isCurrent = sessions.currentId() === id
     await sessions.remove(id)
     if (isCurrent) {
-      chat.setMessages([])
+      const remaining = await window.ipc.invoke('sessions:list')
+      if (remaining.length > 0) {
+        await handleSelectSession(remaining[0].id)
+      } else {
+        chat.setMessages([])
+      }
     }
   }
 
