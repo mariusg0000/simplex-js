@@ -63,10 +63,6 @@ export function ModelSelector({ label, providers, selectedProvider, selectedMode
     e.preventDefault()
   }
 
-  const handleListClick = (e) => {
-    e.stopPropagation()
-  }
-
   const filteredModels = inputValue
     ? models.filter((m) => m.toLowerCase().includes(inputValue.toLowerCase()))
     : models
