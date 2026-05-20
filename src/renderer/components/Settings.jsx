@@ -56,52 +56,99 @@ export function Settings({ values, providers, loaded, fetchModels, onSave, onClo
 
 function ModelsTab({ form, providers, fetchModels, onChange }) {
   return (
-    <div className="models-grid">
-      <ModelSelector
-        label="Chat model"
-        providers={providers}
-        selectedProvider={form.chatModel?.split('/')[0] || ''}
-        selectedModel={form.chatModel?.split('/').slice(1).join('/') || ''}
-        fetchModels={fetchModels}
-        onProviderChange={(provider) => {
-          onChange('chatModel', `${provider}/`)
-        }}
-        onModelChange={(model) => {
-          const provider = form.chatModel?.split('/')[0] || ''
-          onChange('chatModel', `${provider}/${model}`)
-        }}
-      />
-      <ModelSelector
-        label="Vision model"
-        providers={providers}
-        selectedProvider={form.visionModel?.split('/')[0] || ''}
-        selectedModel={form.visionModel?.split('/').slice(1).join('/') || ''}
-        fetchModels={fetchModels}
-        onProviderChange={(provider) => {
-          onChange('visionModel', `${provider}/`)
-        }}
-        onModelChange={(model) => {
-          const provider = form.visionModel?.split('/')[0] || ''
-          onChange('visionModel', `${provider}/${model}`)
-        }}
-      />
-      <ModelSelector
-        label="Summarization model"
-        providers={providers}
-        selectedProvider={form.summarizationModel?.split('/')[0] || ''}
-        selectedModel={form.summarizationModel?.split('/').slice(1).join('/') || ''}
-        fetchModels={fetchModels}
-        onProviderChange={(provider) => {
-          onChange('summarizationModel', `${provider}/`)
-        }}
-        onModelChange={(model) => {
-          const provider = form.summarizationModel?.split('/')[0] || ''
-          onChange('summarizationModel', `${provider}/${model}`)
-        }}
-      />
-      <div className="model-selector spare-cell">
-        <label>Spare</label>
-        <div className="spare-placeholder">Reserved for future use</div>
+    <div className="models-tab-layout">
+      <div className="models-grid">
+        <ModelSelector
+          label="Chat model"
+          providers={providers}
+          selectedProvider={form.chatModel?.split('/')[0] || ''}
+          selectedModel={form.chatModel?.split('/').slice(1).join('/') || ''}
+          fetchModels={fetchModels}
+          onProviderChange={(provider) => {
+            onChange('chatModel', `${provider}/`)
+          }}
+          onModelChange={(model) => {
+            const provider = form.chatModel?.split('/')[0] || ''
+            onChange('chatModel', `${provider}/${model}`)
+          }}
+        />
+        <ModelSelector
+          label="Vision model"
+          providers={providers}
+          selectedProvider={form.visionModel?.split('/')[0] || ''}
+          selectedModel={form.visionModel?.split('/').slice(1).join('/') || ''}
+          fetchModels={fetchModels}
+          onProviderChange={(provider) => {
+            onChange('visionModel', `${provider}/`)
+          }}
+          onModelChange={(model) => {
+            const provider = form.visionModel?.split('/')[0] || ''
+            onChange('visionModel', `${provider}/${model}`)
+          }}
+        />
+        <ModelSelector
+          label="Summarization model"
+          providers={providers}
+          selectedProvider={form.summarizationModel?.split('/')[0] || ''}
+          selectedModel={form.summarizationModel?.split('/').slice(1).join('/') || ''}
+          fetchModels={fetchModels}
+          onProviderChange={(provider) => {
+            onChange('summarizationModel', `${provider}/`)
+          }}
+          onModelChange={(model) => {
+            const provider = form.summarizationModel?.split('/')[0] || ''
+            onChange('summarizationModel', `${provider}/${model}`)
+          }}
+        />
+        <div className="model-selector spare-cell">
+          <label>Spare</label>
+          <div className="spare-placeholder">Reserved for future use</div>
+        </div>
+      </div>
+      <div className="quick-settings">
+        <div className="form-group">
+          <label>Temperature</label>
+          <input
+            type="number"
+            min="0"
+            max="2"
+            step="0.1"
+            value={form.temperature ?? 0.7}
+            onChange={(e) => onChange('temperature', parseFloat(e.target.value))}
+          />
+        </div>
+        <div className="form-group">
+          <label>Max Tokens</label>
+          <input
+            type="number"
+            min="1"
+            max="128000"
+            value={form.maxTokens ?? 4096}
+            onChange={(e) => onChange('maxTokens', parseInt(e.target.value, 10))}
+          />
+        </div>
+        <div className="form-group">
+          <label>Max Context</label>
+          <input
+            type="number"
+            min="1000"
+            max="200000"
+            step="1000"
+            value={form.maxContext ?? 80000}
+            onChange={(e) => onChange('maxContext', parseInt(e.target.value, 10))}
+          />
+        </div>
+        <div className="form-group">
+          <label>Min Context</label>
+          <input
+            type="number"
+            min="500"
+            max="20000"
+            step="500"
+            value={form.minContext ?? 4000}
+            onChange={(e) => onChange('minContext', parseInt(e.target.value, 10))}
+          />
+        </div>
       </div>
     </div>
   )
