@@ -35,6 +35,14 @@ export default function App() {
     chat.setMessages([])
   }
 
+  const handleDeleteSession = async (id) => {
+    const isCurrent = sessions.currentId() === id
+    await sessions.remove(id)
+    if (isCurrent) {
+      chat.setMessages([])
+    }
+  }
+
   const handleSend = async (content) => {
     const msg = { role: 'user', content }
     const updatedMessages = [...chat.messages, msg]
@@ -55,7 +63,7 @@ export default function App() {
         currentId={sessions.currentId()}
         onSelect={handleSelectSession}
         onNew={handleNewSession}
-        onDelete={sessions.remove}
+        onDelete={handleDeleteSession}
         onRename={sessions.rename}
         onSettings={() => setShowSettings(true)}
       />
