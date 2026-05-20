@@ -54,8 +54,17 @@ export function ModelSelector({ label, providers, selectedProvider, selectedMode
     setShowList(true)
   }
 
-  const handleInputBlur = () => {
-    setTimeout(() => setShowList(false), 150)
+  const handleInputBlur = (e) => {
+    if (e.relatedTarget && e.relatedTarget.closest('.model-combo-list')) return
+    setTimeout(() => setShowList(false), 200)
+  }
+
+  const handleListMouseDown = (e) => {
+    e.preventDefault()
+  }
+
+  const handleListClick = (e) => {
+    e.stopPropagation()
   }
 
   const filteredModels = inputValue
@@ -86,7 +95,7 @@ export function ModelSelector({ label, providers, selectedProvider, selectedMode
             className="model-combo-input"
           />
           {showList && filteredModels.length > 0 && (
-            <ul className="model-combo-list">
+            <ul className="model-combo-list" onMouseDown={handleListMouseDown}>
               {filteredModels.slice(0, 50).map((m) => (
                 <li
                   key={m}
