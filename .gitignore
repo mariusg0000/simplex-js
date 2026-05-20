@@ -45,3 +45,4 @@ coverage/
 *.key
 *.sqlite
 *.sqlite3
+.antigravitycli
