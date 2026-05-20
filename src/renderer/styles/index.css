@@ -1327,49 +1327,35 @@ html, body, #root {
    MODELS TAB
    ═══════════════════════════════════════════════ */
 .models-tab-layout {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.models-params-col {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.models-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.quick-settings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  padding: 16px;
+  gap: 10px;
+  padding: 14px;
   background: var(--bg-tertiary);
-  border-radius: var(--radius);
   border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .quick-settings-title {
-  grid-column: 1 / -1;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--text-muted);
-  margin-bottom: -4px;
+  margin-bottom: 4px;
 }
 
-.spare-cell .spare-placeholder {
-  padding: 14px;
-  background: var(--bg-tertiary);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  font-size: 12px;
-  text-align: center;
-  height: 100%;
+.models-selectors-col {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1378,8 +1364,8 @@ html, body, #root {
 .model-selector {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 12px;
+  gap: 6px;
+  padding: 9px 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
