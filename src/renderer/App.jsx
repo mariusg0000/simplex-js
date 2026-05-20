@@ -13,14 +13,13 @@ export default function App() {
   const settings = useSettings()
   const chat = useChat({
     onSave: async (messages, sessionId) => {
-      let currentId = sessions.currentId()
+      let currentId = sessionId || sessions.currentId()
       if (!currentId) {
         const title = messages.find((m) => m.role === 'user')?.content?.slice(0, 50) || 'New Chat'
         currentId = await sessions.create(title)
       }
       await sessions.saveMessages(currentId, messages)
     },
-    getSettings: () => settings.values,
   })
 
   const handleSelectSession = async (id) => {
