@@ -20,6 +20,7 @@ export default function App() {
       }
       await sessions.saveMessages(currentId, messages)
     },
+    getSettings: () => settings.values,
   })
 
   const handleSelectSession = async (id) => {
@@ -75,6 +76,8 @@ export default function App() {
       {showSettings && (
         <Settings
           settings={settings.values}
+          availableModels={settings.availableModels}
+          modelsLoading={settings.modelsLoading}
           onSave={settings.save}
           onClose={() => setShowSettings(false)}
         />

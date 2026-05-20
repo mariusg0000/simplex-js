@@ -1,6 +1,6 @@
 import React from 'react'
 
-export function useChat({ onSave } = {}) {
+export function useChat({ onSave, getSettings } = {}) {
   const [messages, setMessages] = React.useState([])
   const [streaming, setStreaming] = React.useState(null)
   const [reasoning, setReasoning] = React.useState(null)
@@ -45,7 +45,7 @@ export function useChat({ onSave } = {}) {
       setCost(c)
     }))
 
-    window.ipc.send('chat:send', { messages: msgs, sessionId })
+    window.ipc.send('chat:send', { messages: msgs, sessionId, settings: getSettings?.() })
   }
 
   const cancel = () => {

@@ -1,7 +1,7 @@
 import React from 'react'
 import { X } from 'lucide-react'
 
-export function Settings({ settings, onSave, onClose }) {
+export function Settings({ settings, availableModels, modelsLoading, onSave, onClose }) {
   const [form, setForm] = React.useState({ ...settings })
 
   const handleChange = (key, value) => {
@@ -12,6 +12,15 @@ export function Settings({ settings, onSave, onClose }) {
     onSave(form)
     onClose()
   }
+
+  const groupedModels = React.useMemo(() => {
+    const groups = {}
+    for (const m of availableModels) {
+      if (!groups[m.provider]) groups[m.provider] = []
+      groups[m.provider].push(m)
+    }
+    return groups
+  }, [availableModels])
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -25,11 +34,31 @@ export function Settings({ settings, onSave, onClose }) {
         <div className="modal-body">
           <div className="form-group">
             <label>Model</label>
-            <input
-              value={form.model || ''}
-              onChange={(e) => handleChange('model', e.target.value)}
-              placeholder="e.g. deepseek-chat"
-            />
+            {modelsLoading ? (
+              <span className="text-muted">Loading models...</span>
+            ) : availableModels.length > 0 ? (
+              <select
+                value={form.model || ''}
+                onChange={(e) => handleChange('model', e.target.value)}
+              >
+                <option value="">-- Select a model --</option>
+                {Object.entries(groupedModels).map(([provider, models]) => (
+                  <optgroup key={provider} label={provider}>
+                    {models.map((m) => (
+                      <option key={m.fullName} value={m.fullName}>
+                        {m.id}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={form.model || ''}
+                onChange={(e) => handleChange('model', e.target.value)}
+                placeholder="e.g. deepseek-chat"
+              />
+            )}
           </div>
           <div className="form-group">
             <label>API Base URL</label>

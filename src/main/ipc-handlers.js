@@ -23,6 +23,8 @@ export function registerIpcHandlers() {
     systemPrompt: config.systemPrompt,
   }))
 
+  ipcMain.handle('models:list', () => config.fetchModels())
+
   ipcMain.handle('sessions:list', () => database.listSessions())
   ipcMain.handle('sessions:load', (_event, id) => database.getSession(id))
   ipcMain.handle('sessions:save', (_event, session) => {
@@ -47,11 +49,15 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.on('chat:send', async (_event, payload) => {
-    const { messages, sessionId } = payload
+    const { messages, sessionId, settings } = payload
     const win = getMainWindow()
     if (!win) return
 
     abortController = new AbortController()
+
+    const modelConfig = settings?.model
+      ? config.resolveModel(settings.model)
+      : { model: config.model, apiKey: config.apiKey, apiBase: config.apiBase }
 
     try {
       const systemPrompt = buildSystemPrompt([], [], [])
@@ -64,11 +70,11 @@ export function registerIpcHandlers() {
       let reasoningBuffer = ''
 
       const stream = streamChat(fullMessages, {
-        apiKey: config.apiKey,
-        apiBase: config.apiBase,
-        model: config.model,
-        temperature: config.temperature,
-        maxTokens: config.maxTokens,
+        apiKey: modelConfig.apiKey,
+        apiBase: modelConfig.apiBase,
+        model: modelConfig.model,
+        temperature: settings?.temperature ?? config.temperature,
+        maxTokens: settings?.maxTokens ?? config.maxTokens,
       })
 
       for await (const event of stream) {

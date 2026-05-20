@@ -57,6 +57,42 @@ function resolveModel(modelStr) {
 
 const resolved = resolveModel()
 
+async function fetchModels() {
+  const results = []
+  const allProviders = { ...providers }
+
+  if (envVars.SIMPLEX_OPENAI_API_KEY) {
+    const fallbackAlias = 'default'
+    allProviders[fallbackAlias] = {
+      apiKey: envVars.SIMPLEX_OPENAI_API_KEY,
+      apiBase: envVars.SIMPLEX_OPENAI_API_BASE || '',
+    }
+  }
+
+  for (const [alias, { apiKey, apiBase }] of Object.entries(allProviders)) {
+    if (!apiBase || !apiKey) continue
+    try {
+      const url = apiBase.endsWith('/') ? `${apiBase}models` : `${apiBase}/models`
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      })
+      if (!res.ok) continue
+      const data = await res.json()
+      const models = Array.isArray(data) ? data : (data.data || [])
+      for (const m of models) {
+        results.push({
+          id: m.id,
+          provider: alias,
+          fullName: `${alias}/${m.id}`,
+        })
+      }
+    } catch {
+      // skip unreachable providers
+    }
+  }
+  return results
+}
+
 export const config = {
   model: resolved.model,
   apiKey: resolved.apiKey,
@@ -77,6 +113,7 @@ export const config = {
   pythonPath: path.join(SIMPLEX_HOME, '.venv', 'bin', 'python'),
   providers,
   resolveModel,
+  fetchModels,
 }
 
 if (!config.apiKey && process.env.API_KEY) {
