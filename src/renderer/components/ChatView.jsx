@@ -35,6 +35,13 @@ const ALL_SUGGESTIONS = [
   'Ajutor cu redactarea unei procuri speciale de reprezentare'
 ]
 
+/**
+ * WHAT:    Renders the chat interface including conversation bubbles, loading states, and the message composer.
+ * WHY:     Provides the primary visual workspace for user interaction.
+ * HOW:     Uses sub-components for message blocks, a text composer with auto-resize, and stable random starter suggestions.
+ * PARAMS:  props: Object - Component properties including messages, onSend, streaming, reasoning, onAbort.
+ * RETURNS: React.ReactElement representing the chat interface.
+ */
 export function ChatView({ messages, onSend, streaming, reasoning, onAbort }) {
   const [input, setInput] = React.useState('')
   const messagesEndRef = React.useRef(null)
@@ -44,7 +51,7 @@ export function ChatView({ messages, onSend, streaming, reasoning, onAbort }) {
   const suggestions = React.useMemo(() => {
     const shuffled = [...ALL_SUGGESTIONS].sort(() => 0.5 - Math.random())
     return shuffled.slice(0, 4)
-  }, [messages.length === 0])
+  }, [messages.length])
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

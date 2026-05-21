@@ -1,47 +1,7 @@
-import { execSync } from 'child_process'
-import fs from 'fs'
-import path from 'path'
 import { config } from './config.js'
-import { CLI_PROMPTS, EXCLUDED_CLI, TOOL_ALIASES } from './prompts.js'
-
-let envCache = null
-
-function findTool(cmd) {
-  for (const name of [cmd, ...(TOOL_ALIASES[cmd] || [])]) {
-    try {
-      const result = execSync(`which "${name}" 2>/dev/null`, { encoding: 'utf-8', timeout: 3000 }).trim()
-      if (result) return result
-    } catch { }
-  }
-  return null
-}
-
-function pythonPackageAvailable(pkg) {
-  const scriptsVenv = path.join(config.simplexHome, 'scripts', '.venv', 'bin', 'python')
-  const python = fs.existsSync(scriptsVenv) ? scriptsVenv : 'python3'
-  try {
-    execSync(`"${python}" -c "import ${pkg}"`, { encoding: 'utf-8', timeout: 5000 })
-    return true
-  } catch {
-    return false
-  }
-}
 
 function buildEnvSection() {
-  if (envCache !== null) return envCache
-
-  const lines = []
-  for (const [cmd, prompt] of Object.entries(CLI_PROMPTS)) {
-    if (EXCLUDED_CLI.has(cmd)) continue
-    if (cmd === 'pandas') {
-      if (pythonPackageAvailable('pandas')) lines.push(prompt)
-    } else if (findTool(cmd)) {
-      lines.push(prompt)
-    }
-  }
-
-  envCache = lines.join('\n')
-  return envCache
+  return ''
 }
 
 export function buildSystemPrompt(tools, agents, skills, sessionFolder) {

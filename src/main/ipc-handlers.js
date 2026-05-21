@@ -1,3 +1,8 @@
+/**
+ * ipc-handlers.js — src/main/ipc-handlers.js
+ * Registers and handles Electron Inter-Process Communication (IPC) messages.
+ * Layer: Main Process / Dependencies: electron, config, storage, database, client, tool-parser
+ */
 import { ipcMain, BrowserWindow } from 'electron'
 import { config } from './config.js'
 import { storage } from './storage.js'
@@ -8,10 +13,24 @@ import { StreamingToolParser } from '../engine/tool-parser.js'
 
 let abortController = null
 
+/**
+ * WHAT:    Retrieves the primary application window instance.
+ * WHY:     Needed to send IPC events back to the renderer process.
+ * HOW:     Queries BrowserWindow.getAllWindows() and returns the first index.
+ * PARAMS:  none
+ * RETURNS: BrowserWindow|undefined - The active main window.
+ */
 function getMainWindow() {
   return BrowserWindow.getAllWindows()[0]
 }
 
+/**
+ * WHAT:    Registers IPC channel listeners for all application settings, database sessions, and chat streams.
+ * WHY:     Serves as the bridge between the Electron preload context and the main Node.js process operations.
+ * HOW:     Calls ipcMain.handle and ipcMain.on for specific whitelist channels.
+ * PARAMS:  none
+ * RETURNS: none
+ */
 export function registerIpcHandlers() {
   ipcMain.handle('settings:load', () => storage.load())
   ipcMain.handle('settings:save', (_event, prefs) => storage.save(prefs))
@@ -82,6 +101,7 @@ export function registerIpcHandlers() {
         model: modelConfig.model,
         temperature: settings?.temperature ?? config.temperature,
         maxTokens: settings?.maxTokens ?? config.maxTokens,
+        signal: abortController.signal,
       })
 
       for await (const event of stream) {

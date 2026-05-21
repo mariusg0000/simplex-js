@@ -5,7 +5,7 @@ import fs from 'fs'
 
 const SIMPLEX_HOME = path.join(os.homedir(), '.simplexai')
 const CONFIG_PATH = path.join(SIMPLEX_HOME, 'config.json')
-const ORIGINAL_ENV_PATH = path.resolve(process.cwd(), '../Simplex/.env')
+const ORIGINAL_ENV_PATH = path.resolve(process.cwd(), '.env')
 
 dotenv.config({ path: ORIGINAL_ENV_PATH, override: true })
 

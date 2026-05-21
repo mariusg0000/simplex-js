@@ -1,3 +1,8 @@
+/**
+ * index.cjs — src/preload/index.cjs
+ * Preload script exposing a secure, whitelisted IPC interface to the renderer.
+ * Layer: Preload Script / Dependencies: electron
+ */
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('ipc', {
@@ -15,8 +20,6 @@ contextBridge.exposeInMainWorld('ipc', {
       'config:save',
       'providers:list',
       'models:list',
-      'chat:send',
-      'chat:cancel',
       'tools:inspect',
       'tools:execute',
     ]
