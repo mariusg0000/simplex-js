@@ -235,17 +235,24 @@ async function dispatchToolBlock(block, sessionId) {
   }
 
   if (agentRegistry.get(name)) {
-    return {
-      ok: false,
-      kind: 'agent',
-      name,
-      args,
-      resultText: formatToolExecutionError(
+    try {
+      const sessionFolder = sessionId ? database.sessionDir(sessionId) : ''
+      const result = await agentRegistry.call(name, args, sessionFolder)
+      return {
+        ok: true,
+        kind: 'agent',
         name,
         args,
-        'Agent execution is not implemented in JS runtime yet',
-        'This call was recognized as an agent, but only Python tools are executable at the moment.'
-      ),
+        resultText: formatToolExecutionSuccess(name, result),
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        kind: 'agent',
+        name,
+        args,
+        resultText: formatToolExecutionError(name, args, 'Agent execution failed', normalizeError(err)),
+      }
     }
   }
 

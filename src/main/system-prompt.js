@@ -11,7 +11,7 @@ import { CLI_PROMPTS, EXCLUDED_CLI, TOOL_ALIASES } from './prompts.js'
 
 let envCache = null
 
-function buildToolsSection(tools) {
+export function buildToolsSection(tools) {
   const lines = [
     '## AVAILABLE TOOLS',
     '',
