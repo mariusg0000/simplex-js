@@ -45,7 +45,7 @@ export class AgentRegistry {
     this._discover(dir, 'custom')
   }
 
-  _discover(dir, sourceLabel) {
+  _discover(dir, _sourceLabel) {
     if (!fs.existsSync(dir)) return
     for (const file of fs.readdirSync(dir)) {
       if (!file.endsWith('.md') || file.toLowerCase() === 'readme.md') continue
@@ -104,7 +104,7 @@ export class AgentRegistry {
     const agent = this._agents.get(name)
     if (!agent) return `Error: Agent '${name}' not found.`
 
-    const task = String(args?.task || args?.task || '')
+    const task = String(args?.task || '')
 
     const MAX_TASK_LENGTH = 2000
     if (task.length > MAX_TASK_LENGTH) {

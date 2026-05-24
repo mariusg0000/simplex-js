@@ -174,7 +174,7 @@ function handleSkillControlTool(name, args, sessionId) {
           name,
           args,
           `Active skill limit reached (${MAX_ACTIVE_SKILLS}). Unload one first.`,
-          `active_skills: [${active.map((s) => s.name).join(', ')}]`
+          `active_skills: [${active.map((s) => s.name).join(', ')}]; next step: call unload_skill(skill_name='<one of active skills>') then retry load_skill(skill_name='${skillName}')`
         ),
       }
     }

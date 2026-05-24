@@ -45,7 +45,6 @@ export class ToolCapableAgent {
   }
 
   _buildSystemPrompt() {
-    const schemas = this._getAllowedSchemas()
     const lines = [this.rolePrompt]
 
     if (this.allowedTools && this.allowedTools.size > 0) {
@@ -93,7 +92,7 @@ everything must be created inside this directory. No exceptions.`
 
     let lastToolName = null
     let gaveFallback = false
-    const maxRounds = this.maxRounds
+    let maxRounds = this.maxRounds
 
     for (let round = 1; round <= maxRounds; round += 1) {
       if (onStep) onStep(new AgentStep(this.name, round, 'llm_call', 'Thinking...'))
@@ -198,7 +197,8 @@ everything must be created inside this directory. No exceptions.`
           role: 'user',
           content: `Maximum attempts reached. Call ${this.doneToolName}(result='...') with what you have. Do NOT continue working on the task.`,
         })
-        this.maxRounds += 1
+        maxRounds += 1
+        this.maxRounds = maxRounds
         gaveFallback = true
       }
     }
