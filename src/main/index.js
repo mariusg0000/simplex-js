@@ -42,7 +42,6 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  agentRegistry.discover()
   await Promise.all([toolRegistry.discover(), skillRegistry.discover()])
   registerIpcHandlers()
   createWindow()

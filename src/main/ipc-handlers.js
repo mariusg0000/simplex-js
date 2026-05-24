@@ -214,9 +214,18 @@ function handleSkillControlTool(name, args, sessionId) {
   return null
 }
 
+function withAgentParams(args, sessionId) {
+  const merged = { ...(args || {}) }
+  const sessionFolder = sessionId ? database.sessionDir(sessionId) : ''
+  if (sessionFolder) {
+    merged._agent_params = { work_dir: sessionFolder }
+  }
+  return merged
+}
+
 async function dispatchToolBlock(block, sessionId) {
   const name = block?.name
-  const args = block?.args || {}
+  const args = withAgentParams(block?.args, sessionId)
 
   const skillControl = handleSkillControlTool(name, args, sessionId)
   if (skillControl) return skillControl

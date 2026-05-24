@@ -239,6 +239,19 @@ tools/
 - `electron-builder.yml` — Release packaging
 - `.gitignore` — Dependencies, builds, env files, IDE, OS files
 
+### 9. Python Runtime Strategy (Decided)
+
+- Tool execution remains **Python-only**; no JS command execution tools are planned.
+- The app must not depend on a user-installed system Python.
+- Distribution direction: bundle a Python runtime with the installer/package and use it as the only runtime for `bridge.py` and Python tools.
+- No autonomous install agent flow is used for provisioning Python.
+- If Python runtime/bootstrap is not ready, app should report clear runtime status and block tool execution until runtime is healthy.
+
+**Scope decisions:**
+- Do not add JS-native `bash` / `system_install` fallback tools.
+- Do not run LLM-driven OS package installation flows.
+- Keep tool discovery/execution path via Python bridge only.
+
 ## IPC Channels
 
 | Channel | Direction | Purpose |
