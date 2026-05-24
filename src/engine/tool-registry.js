@@ -56,10 +56,17 @@ export class ToolRegistry {
       lines.push(`• ${tool.name} — ${desc}`)
       const props = tool.parameters?.properties || {}
       const required = new Set(tool.parameters?.required || [])
+      const example = [`<${tool.name}>`]
       for (const [pName, pInfo] of Object.entries(props)) {
         const req = required.has(pName) ? ' (required)' : ''
         lines.push(`  <${pName}>${req} — ${pInfo.description || ''}`)
+        if (required.has(pName)) {
+          example.push(`  <${pName}>...</${pName}>`)
+        }
       }
+      example.push(`</${tool.name}>`)
+      lines.push('  XML example:')
+      lines.push(`  ${example.join('\n  ')}`)
     }
 
     lines.push('', 'IMPORTANT: Return ONLY ONE tool block per response.', 'Output the XML block without surrounding explanation or markdown fences.')

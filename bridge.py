@@ -6,6 +6,10 @@ import json
 import importlib.util
 import re
 import os
+import asyncio
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
 def load_module(path):
@@ -27,6 +31,8 @@ def cmd_execute(tool_path, args_json):
     mod = load_module(tool_path)
     args = json.loads(args_json) if args_json else {}
     result = mod.execute(**args)
+    if asyncio.iscoroutine(result):
+        result = asyncio.run(result)
     print(json.dumps(result))
 
 

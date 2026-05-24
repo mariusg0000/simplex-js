@@ -12,7 +12,8 @@ import { buildSystemPrompt } from './system-prompt.js'
 import { agentRegistry } from '../engine/agent-registry.js'
 import { toolRegistry } from '../engine/tool-registry.js'
 import { skillRegistry } from '../engine/skill-registry.js'
-import { StreamingToolParser } from '../engine/tool-parser.js'
+import { executeTool } from '../engine/python-bridge.js'
+import { StreamingToolParser, formatResult, formatDisplayForActivityLog } from '../engine/tool-parser.js'
 
 let abortController = null
 
@@ -25,6 +26,107 @@ let abortController = null
  */
 function getMainWindow() {
   return BrowserWindow.getAllWindows()[0]
+}
+
+function normalizeError(err) {
+  if (!err) return 'Unknown error'
+  if (typeof err === 'string') return err
+  if (err instanceof Error) return err.message
+  try {
+    return JSON.stringify(err)
+  } catch {
+    return String(err)
+  }
+}
+
+function formatToolExecutionError(name, args, cause, details = null) {
+  const payload = {
+    status: 'error',
+    tool: name,
+    args,
+    cause,
+  }
+  if (details) payload.details = details
+  return `TOOL_EXECUTION_ERROR\n${JSON.stringify(payload, null, 2)}`
+}
+
+function formatToolExecutionSuccess(name, output) {
+  const payload = {
+    status: 'ok',
+    tool: name,
+    output,
+  }
+  return `TOOL_EXECUTION_OK\n${JSON.stringify(payload, null, 2)}`
+}
+
+async function dispatchToolBlock(block) {
+  const name = block?.name
+  const args = block?.args || {}
+
+  const tool = toolRegistry.get(name)
+  if (tool) {
+    try {
+      const result = executeTool(tool.path, args)
+      return {
+        ok: true,
+        kind: 'tool',
+        name,
+        args,
+        resultText: formatToolExecutionSuccess(name, result),
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        kind: 'tool',
+        name,
+        args,
+        resultText: formatToolExecutionError(name, args, 'Tool execution failed', normalizeError(err)),
+      }
+    }
+  }
+
+  if (agentRegistry.get(name)) {
+    return {
+      ok: false,
+      kind: 'agent',
+      name,
+      args,
+      resultText: formatToolExecutionError(
+        name,
+        args,
+        'Agent execution is not implemented in JS runtime yet',
+        'This call was recognized as an agent, but only Python tools are executable at the moment.'
+      ),
+    }
+  }
+
+  if (skillRegistry.get(name)) {
+    return {
+      ok: false,
+      kind: 'skill',
+      name,
+      args,
+      resultText: formatToolExecutionError(
+        name,
+        args,
+        'Skill execution is not implemented in JS runtime yet',
+        'This call was recognized as a skill, but only Python tools are executable at the moment.'
+      ),
+    }
+  }
+
+  return {
+    ok: false,
+    kind: 'unknown',
+    name,
+    args,
+    resultText: formatToolExecutionError(
+      name,
+      args,
+      'Unknown tool/agent/skill name',
+      'Use exactly one name from AVAILABLE TOOLS or AVAILABLE AGENTS.'
+    ),
+  }
 }
 
 /**
@@ -75,8 +177,11 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.handle('tools:execute', async (_event, toolName, args) => {
-    const { executeTool } = await import('../engine/python-bridge.js')
-    return executeTool(toolName, args)
+    const tool = toolRegistry.get(toolName)
+    if (!tool) {
+      throw new Error(`Unknown tool: ${toolName}`)
+    }
+    return executeTool(tool.path, args)
   })
 
   ipcMain.on('chat:send', async (_event, payload) => {
@@ -91,49 +196,93 @@ export function registerIpcHandlers() {
 
     try {
       const sessionDir = sessionId ? database.sessionDir(sessionId) : null
-      const systemMsg = buildSystemPrompt(toolRegistry.list(), agentRegistry.list(), skillRegistry.list(), sessionDir)
-      const fullMessages = [systemMsg, ...messages]
+      const knownTools = new Set([
+        ...toolRegistry.list().map((t) => t.name),
+        ...agentRegistry.list().map((a) => a.name),
+        ...skillRegistry.list().map((s) => s.name),
+      ])
 
-      const parser = new StreamingToolParser()
-      let contentBuffer = ''
       let reasoningBuffer = ''
+      let finalVisibleContent = ''
+      const conversation = [...messages]
+      const maxRounds = 12
 
-      const stream = streamChat(fullMessages, {
-        apiKey: modelConfig.apiKey,
-        apiBase: modelConfig.apiBase,
-        model: modelConfig.model,
-        temperature: settings?.temperature ?? config.temperature,
-        maxTokens: settings?.maxTokens ?? config.maxTokens,
-        signal: abortController.signal,
-      })
-
-      for await (const event of stream) {
+      for (let round = 1; round <= maxRounds; round += 1) {
         if (abortController.signal.aborted) break
 
-        if (event.type === 'content') {
-          contentBuffer += event.content
-          win.webContents.send('chat:chunk', event.content)
-          parser.feed(event.content)
+        const systemMsg = buildSystemPrompt(toolRegistry.list(), agentRegistry.list(), skillRegistry.list(), sessionDir)
+        const fullMessages = [systemMsg, ...conversation]
+        const parser = new StreamingToolParser(knownTools)
+        let roundVisibleContent = ''
+        let roundRawContent = ''
+
+        const stream = streamChat(fullMessages, {
+          apiKey: modelConfig.apiKey,
+          apiBase: modelConfig.apiBase,
+          model: modelConfig.model,
+          temperature: settings?.temperature ?? config.temperature,
+          maxTokens: settings?.maxTokens ?? config.maxTokens,
+          signal: abortController.signal,
+        })
+
+        for await (const event of stream) {
+          if (abortController.signal.aborted) break
+
+          if (event.type === 'content') {
+            roundRawContent += event.content
+            for (const parsedEvent of parser.feed(event.content)) {
+              if (parsedEvent.type === 'content' && parsedEvent.content) {
+                roundVisibleContent += parsedEvent.content
+                win.webContents.send('chat:chunk', parsedEvent.content)
+              }
+            }
+          }
+
+          if (event.type === 'reasoning') {
+            reasoningBuffer += event.content
+            win.webContents.send('chat:reasoning', event.content)
+          }
         }
 
-        if (event.type === 'reasoning') {
-          reasoningBuffer += event.content
-          win.webContents.send('chat:reasoning', event.content)
+        for (const parsedEvent of parser.flush()) {
+          if (parsedEvent.type === 'content' && parsedEvent.content) {
+            roundVisibleContent += parsedEvent.content
+            win.webContents.send('chat:chunk', parsedEvent.content)
+          }
         }
+
+        finalVisibleContent = roundVisibleContent
+
+        const assistantMsg = { role: 'assistant', content: roundRawContent }
+        conversation.push(assistantMsg)
+
+        const toolBlocks = parser.toolBlocks || []
+        if (toolBlocks.length === 0) {
+          break
+        }
+
+        const block = toolBlocks[0]
+        const displayLine = formatDisplayForActivityLog(block.name, block.args || {}, null)
+        win.webContents.send('chat:tool', [{ ...block, display: displayLine, round }])
+        win.webContents.send('chat:status', { value: 'tool_run', content: `Running: ${block.name}...` })
+
+        const dispatch = await dispatchToolBlock(block)
+        const wrappedResult = formatResult(dispatch.name, dispatch.resultText)
+        conversation.push({ role: 'user', content: wrappedResult })
+
+        win.webContents.send('chat:status', {
+          value: dispatch.ok ? 'tool_done' : 'tool_error',
+          content: dispatch.ok ? `Done: ${dispatch.name}` : `Error: ${dispatch.name}`,
+        })
       }
 
       if (!abortController.signal.aborted) {
-        const toolBlocks = parser.extractBlocks()
-        if (toolBlocks.length > 0) {
-          win.webContents.send('chat:tool', toolBlocks)
-        }
-
         win.webContents.send('chat:usage', {
-          tokens: contentBuffer.length / 4,
+          tokens: finalVisibleContent.length / 4,
           cost: 0,
         })
 
-        win.webContents.send('chat:done', { content: contentBuffer, reasoning: reasoningBuffer })
+        win.webContents.send('chat:done', { content: finalVisibleContent, reasoning: reasoningBuffer })
       }
     } catch (err) {
       if (!abortController?.signal.aborted) {
