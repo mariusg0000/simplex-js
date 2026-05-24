@@ -155,7 +155,6 @@ function handleSkillControlTool(name, args, sessionId) {
 
     const exists = active.find((s) => s.name === skill.name)
     if (exists) {
-      exists.lastUsedAt = Date.now()
       return {
         ok: true,
         kind: 'skill_control',
@@ -166,11 +165,21 @@ function handleSkillControlTool(name, args, sessionId) {
     }
 
     if (active.length >= MAX_ACTIVE_SKILLS) {
-      active.sort((a, b) => (a.lastUsedAt || 0) - (b.lastUsedAt || 0))
-      active.shift()
+      return {
+        ok: false,
+        kind: 'skill_control',
+        name,
+        args,
+        resultText: formatToolExecutionError(
+          name,
+          args,
+          `Active skill limit reached (${MAX_ACTIVE_SKILLS}). Unload one first.`,
+          `active_skills: [${active.map((s) => s.name).join(', ')}]`
+        ),
+      }
     }
 
-    active.push({ ...skill, loadedAt: Date.now(), lastUsedAt: Date.now() })
+    active.push({ ...skill, loadedAt: Date.now() })
     return {
       ok: true,
       kind: 'skill_control',
@@ -427,12 +436,6 @@ export function registerIpcHandlers() {
         const dispatch = await dispatchToolBlock(block, sessionId)
         const wrappedResult = formatResult(dispatch.name, dispatch.resultText)
         conversation.push({ role: 'user', content: wrappedResult })
-
-        if (dispatch.kind === 'skill_control' && dispatch.ok && block.args?.skill_name) {
-          const active = getActiveSkills(sessionId)
-          const hit = active.find((s) => s.name === String(block.args.skill_name).trim())
-          if (hit) hit.lastUsedAt = Date.now()
-        }
 
         win.webContents.send('chat:status', {
           value: dispatch.ok ? 'tool_done' : 'tool_error',
