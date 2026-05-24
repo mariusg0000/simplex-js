@@ -57,19 +57,10 @@ const SKILL_CONTROL_TOOLS = [
       required: ['skill_name'],
     },
   },
-  {
-    name: 'list_active_skills',
-    description: 'List currently active loaded skills.',
-    parameters: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'clear_active_skills',
-    description: 'Unload all currently active skills.',
-    parameters: { type: 'object', properties: {}, required: [] },
-  },
 ]
 
 const LOAD_SKILL_TOOL = SKILL_CONTROL_TOOLS.find((t) => t.name === 'load_skill')
+const UNLOAD_SKILL_TOOL = SKILL_CONTROL_TOOLS.find((t) => t.name === 'unload_skill')
 
 /**
  * WHAT:    Retrieves the primary application window instance.
@@ -157,27 +148,6 @@ function buildToolSyntaxError(name, args, tool, missingRequired) {
 function handleSkillControlTool(name, args, sessionId) {
   const active = getActiveSkills(sessionId)
   const skillName = String(args?.skill_name || '').trim()
-
-  if (name === 'list_active_skills') {
-    return {
-      ok: true,
-      kind: 'skill_control',
-      name,
-      args,
-      resultText: `SKILL_LIST\n${JSON.stringify({ active_skills: active.map((s) => s.name) }, null, 2)}`,
-    }
-  }
-
-  if (name === 'clear_active_skills') {
-    ACTIVE_SKILLS_BY_SESSION.set(sessionKey(sessionId), [])
-    return {
-      ok: true,
-      kind: 'skill_control',
-      name,
-      args,
-      resultText: 'SKILL_CLEAR_OK\nAll active skills were unloaded.',
-    }
-  }
 
   if (name === 'load_skill') {
     if (!skillName) {
@@ -464,7 +434,8 @@ export function registerIpcHandlers() {
         const activeSkills = getActiveSkills(sessionId)
         const runtimeTools = [
           ...toolRegistry.list(),
-          ...(activeSkills.length === 0 && LOAD_SKILL_TOOL ? [LOAD_SKILL_TOOL] : []),
+          ...(LOAD_SKILL_TOOL ? [LOAD_SKILL_TOOL] : []),
+          ...(activeSkills.length > 0 && UNLOAD_SKILL_TOOL ? [UNLOAD_SKILL_TOOL] : []),
         ]
         const knownTools = new Set([
           ...runtimeTools.map((t) => t.name),
