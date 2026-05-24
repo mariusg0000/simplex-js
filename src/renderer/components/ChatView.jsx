@@ -47,6 +47,53 @@ export function ChatView({ messages, onSend, streaming, reasoning, onAbort }) {
   const messagesEndRef = React.useRef(null)
   const textareaRef = React.useRef(null)
 
+  const extractDroppedPaths = React.useCallback((event) => {
+    const dt = event.dataTransfer
+    if (!dt) return []
+
+    const filePaths = Array.from(dt.files || [])
+      .map((f) => window.ipc.getPathForFile?.(f) || f.path || '')
+      .filter(Boolean)
+
+    if (filePaths.length > 0) return filePaths
+
+    const uriList = dt.getData('text/uri-list')
+    if (uriList) {
+      return uriList
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#'))
+        .map((line) => {
+          if (!line.startsWith('file://')) return line
+          try {
+            return decodeURI(line.replace('file://', ''))
+          } catch {
+            return line.replace('file://', '')
+          }
+        })
+    }
+
+    return []
+  }, [])
+
+  const handleDrop = React.useCallback((event) => {
+    event.preventDefault()
+    const paths = extractDroppedPaths(event)
+    if (paths.length === 0) return
+
+    const textToInsert = paths.join(' ')
+    setInput((prev) => {
+      if (!prev.trim()) return textToInsert
+      const sep = prev.endsWith(' ') || prev.endsWith('\n') ? '' : ' '
+      return `${prev}${sep}${textToInsert}`
+    })
+    textareaRef.current?.focus()
+  }, [extractDroppedPaths])
+
+  const handleDragOver = React.useCallback((event) => {
+    event.preventDefault()
+  }, [])
+
   // Choose 4 random stable suggestions on new chat
   const suggestions = React.useMemo(() => {
     const shuffled = [...ALL_SUGGESTIONS].sort(() => 0.5 - Math.random())
@@ -91,6 +138,8 @@ export function ChatView({ messages, onSend, streaming, reasoning, onAbort }) {
           placeholder="Type a message…"
           rows={1}
           disabled={!!streaming}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
         />
         {streaming ? (
           <button className="btn-abort" onClick={onAbort} title="Stop generating">
@@ -108,7 +157,7 @@ export function ChatView({ messages, onSend, streaming, reasoning, onAbort }) {
 
   if (messages.length === 0 && !streaming) {
     return (
-      <div className="chat-view">
+      <div className="chat-view" onDrop={handleDrop} onDragOver={handleDragOver}>
         <div className="empty-state">
           <div className="empty-state-icon">
             <Send size={24} />
@@ -133,7 +182,7 @@ export function ChatView({ messages, onSend, streaming, reasoning, onAbort }) {
   }
 
   return (
-    <div className="chat-view">
+    <div className="chat-view" onDrop={handleDrop} onDragOver={handleDragOver}>
       <div className="messages-container">
         {messages.map((msg, i) => {
           if (msg.type === 'reasoning') {

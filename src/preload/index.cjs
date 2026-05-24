@@ -3,7 +3,7 @@
  * Preload script exposing a secure, whitelisted IPC interface to the renderer.
  * Layer: Preload Script / Dependencies: electron
  */
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 contextBridge.exposeInMainWorld('ipc', {
   invoke(channel, ...args) {
@@ -50,5 +50,13 @@ contextBridge.exposeInMainWorld('ipc', {
     const validChannels = ['chat:send', 'chat:cancel']
     if (!validChannels.includes(channel)) return
     ipcRenderer.send(channel, ...args)
+  },
+
+  getPathForFile(file) {
+    try {
+      return webUtils.getPathForFile(file)
+    } catch {
+      return ''
+    }
   },
 })
