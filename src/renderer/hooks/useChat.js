@@ -62,7 +62,7 @@ export function useChat({ onSave, getSettings } = {}) {
         return updated
       })
       setStreaming(null)
-      setReasoning(null)
+      if (reasoning) setReasoning(reasoning)
       setStatus('Ready')
       runCleanups()
     }))
@@ -85,11 +85,9 @@ export function useChat({ onSave, getSettings } = {}) {
   const cancel = () => {
     window.ipc.send('chat:cancel')
     setStreaming(null)
-    setReasoning(null)
     setStatus('Cancelled')
     runCleanups()
   }
 
   return { messages, setMessages, streaming, reasoning, tokenCount, cost, status, send, cancel }
 }
-

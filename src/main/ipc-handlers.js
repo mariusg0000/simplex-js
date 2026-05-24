@@ -21,6 +21,15 @@ function debugLog(...args) {
   if (DEBUG) console.log('[DEBUG]', ...args)
 }
 
+function debugJson(label, payload) {
+  if (!DEBUG) return
+  try {
+    console.log(`[DEBUG] ${label}`, JSON.stringify(payload, null, 2))
+  } catch {
+    console.log(`[DEBUG] ${label}`, payload)
+  }
+}
+
 let abortController = null
 const MAX_ACTIVE_SKILLS = 3
 const ACTIVE_SKILLS_BY_SESSION = new Map()
@@ -59,6 +68,8 @@ const SKILL_CONTROL_TOOLS = [
     parameters: { type: 'object', properties: {}, required: [] },
   },
 ]
+
+const LOAD_SKILL_TOOL = SKILL_CONTROL_TOOLS.find((t) => t.name === 'load_skill')
 
 /**
  * WHAT:    Retrieves the primary application window instance.
@@ -168,17 +179,17 @@ function handleSkillControlTool(name, args, sessionId) {
     }
   }
 
-  if (!skillName) {
-    return {
-      ok: false,
-      kind: 'skill_control',
-      name,
-      args,
-      resultText: formatToolExecutionError(name, args, 'Missing required argument: skill_name'),
-    }
-  }
-
   if (name === 'load_skill') {
+    if (!skillName) {
+      return {
+        ok: false,
+        kind: 'skill_control',
+        name,
+        args,
+        resultText: formatToolExecutionError(name, args, 'Missing required argument: skill_name'),
+      }
+    }
+
     const skill = skillRegistry.get(skillName)
     if (!skill || !skill.enabled) {
       return {
@@ -227,6 +238,16 @@ function handleSkillControlTool(name, args, sessionId) {
   }
 
   if (name === 'unload_skill') {
+    if (!skillName) {
+      return {
+        ok: false,
+        kind: 'skill_control',
+        name,
+        args,
+        resultText: formatToolExecutionError(name, args, 'Missing required argument: skill_name'),
+      }
+    }
+
     const before = active.length
     const next = active.filter((s) => s.name !== skillName)
     ACTIVE_SKILLS_BY_SESSION.set(sessionKey(sessionId), next)
@@ -253,10 +274,6 @@ function handleSkillControlTool(name, args, sessionId) {
 
 function withAgentParams(args, sessionId) {
   const merged = { ...(args || {}) }
-  const sessionFolder = sessionId ? database.sessionDir(sessionId) : ''
-  if (sessionFolder) {
-    merged._agent_params = { work_dir: sessionFolder }
-  }
   return merged
 }
 
@@ -269,6 +286,12 @@ async function dispatchToolBlock(block, sessionId) {
 
   const tool = toolRegistry.get(name)
   if (tool) {
+    debugJson('[TOOL_EXECUTE_REQUEST]', {
+      name,
+      path: tool.path,
+      args,
+    })
+
     const required = tool?.parameters?.required || []
     const missingRequired = required.filter((key) => isMissingRequiredArg(args?.[key]))
     if (missingRequired.length > 0) {
@@ -424,12 +447,6 @@ export function registerIpcHandlers() {
 
     try {
       const sessionDir = sessionId ? database.sessionDir(sessionId) : null
-      const runtimeTools = [...toolRegistry.list(), ...SKILL_CONTROL_TOOLS]
-      const knownTools = new Set([
-        ...runtimeTools.map((t) => t.name),
-        ...agentRegistry.list().map((a) => a.name),
-        ...skillRegistry.list().map((s) => s.name),
-      ])
 
       let reasoningBuffer = ''
       let finalVisibleContent = ''
@@ -445,8 +462,36 @@ export function registerIpcHandlers() {
         let reasoningChars = 0
 
         const activeSkills = getActiveSkills(sessionId)
+        const runtimeTools = [
+          ...toolRegistry.list(),
+          ...(activeSkills.length === 0 && LOAD_SKILL_TOOL ? [LOAD_SKILL_TOOL] : []),
+        ]
+        const knownTools = new Set([
+          ...runtimeTools.map((t) => t.name),
+          ...agentRegistry.list().map((a) => a.name),
+          ...skillRegistry.list().map((s) => s.name),
+        ])
         const systemMsg = buildSystemPrompt(runtimeTools, agentRegistry.list(), skillRegistry.list(), sessionDir, activeSkills)
         const fullMessages = [systemMsg, ...conversation]
+        if (DEBUG) {
+          const llmRequestPayload = {
+            model: modelConfig.model,
+            temperature: settings?.temperature ?? config.temperature,
+            maxTokens: settings?.maxTokens ?? config.maxTokens,
+            messages: fullMessages,
+          }
+          console.log('[DEBUG][LLM_REQUEST_JSON_PRETTY]')
+          console.log(JSON.stringify(llmRequestPayload, null, 2))
+          console.log('[DEBUG][LLM_REQUEST_HUMAN]')
+          console.log(`model: ${llmRequestPayload.model}`)
+          console.log(`temperature: ${llmRequestPayload.temperature}`)
+          console.log(`maxTokens: ${llmRequestPayload.maxTokens}`)
+          llmRequestPayload.messages.forEach((msg, idx) => {
+            console.log(`--- message[${idx}] role=${msg.role} ---`)
+            console.log(msg.content || '')
+            console.log(`--- end message[${idx}] ---`)
+          })
+        }
         const parser = new StreamingToolParser(knownTools)
         let roundVisibleContent = ''
         let roundRawContent = ''
@@ -510,25 +555,18 @@ export function registerIpcHandlers() {
         if (!roundRawContent.trim()) {
           debugLog('empty llm response', { round, sessionId })
         }
+        debugLog(`[RAW_FULL][round=${round}] >>>${roundRawContent}<<<`)
 
         const assistantMsg = { role: 'assistant', content: roundRawContent }
         conversation.push(assistantMsg)
 
         let toolBlocks = parser.toolBlocks || []
-        debugLog('tool blocks from streaming parser', {
-          round,
-          count: toolBlocks.length,
-          names: toolBlocks.map((b) => b.name),
-        })
+        debugJson(`[PARSER_TOOL_BLOCKS][round=${round}]`, toolBlocks)
         if (toolBlocks.length === 0 && roundRawContent) {
           const fallback = extractToolBlocks(roundRawContent, knownTools)
           if (fallback.length > 0) {
             toolBlocks = fallback
-            debugLog('tool blocks recovered by fallback', {
-              round,
-              count: fallback.length,
-              names: fallback.map((b) => b.name),
-            })
+            debugJson(`[FALLBACK_TOOL_BLOCKS][round=${round}]`, fallback)
             console.warn('[tool-parser] Streaming parser missed tool block; fallback extraction recovered it', {
               recovered: fallback.map((b) => b.name),
               round,

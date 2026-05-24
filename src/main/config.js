@@ -13,6 +13,7 @@ const SIMPLEX_HOME = path.join(os.homedir(), '.simplexai')
 const CONFIG_PATH = path.join(SIMPLEX_HOME, 'config.json')
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const PROJECT_ROOT = path.resolve(__dirname, '../..')
 const ORIGINAL_ENV_PATH = path.resolve(__dirname, '../../.env')
 
 dotenv.config({ path: ORIGINAL_ENV_PATH, override: true })
@@ -139,6 +140,13 @@ const resolvedChat = resolveModel(chatModelStr)
 const resolvedVision = resolveModel(visionModelStr)
 const resolvedSummarization = resolveModel(summarizationModelStr)
 
+const bundledBridgePath = path.join(SIMPLEX_HOME, 'bridge.py')
+const projectBridgePath = path.join(PROJECT_ROOT, 'bridge.py')
+const bridgePath = fs.existsSync(bundledBridgePath) ? bundledBridgePath : projectBridgePath
+
+const bundledPythonPath = path.join(SIMPLEX_HOME, '.venv', 'bin', 'python')
+const pythonPath = fs.existsSync(bundledPythonPath) ? bundledPythonPath : 'python3'
+
 export const config = {
   chatModel: chatModelStr,
   chatModelResolved: resolvedChat,
@@ -158,8 +166,8 @@ export const config = {
   dbPath: path.join(SIMPLEX_HOME, 'chats.db'),
   settingsPath: path.join(SIMPLEX_HOME, 'user_settings.json'),
   configPath: CONFIG_PATH,
-  bridgePath: path.join(SIMPLEX_HOME, 'bridge.py'),
-  pythonPath: path.join(SIMPLEX_HOME, '.venv', 'bin', 'python'),
+  bridgePath,
+  pythonPath,
   providers,
   getProviderList,
   fetchModelsForProvider,
